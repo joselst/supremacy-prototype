@@ -91,6 +91,8 @@
   .tile .big{font-family:var(--display);font-weight:800;font-size:2.3rem;line-height:1.05;letter-spacing:-.02em}
   .tile.debe .big{color:var(--ochre)}
   .tile .mid{font-family:var(--display);font-weight:700;font-size:1.45rem;line-height:1.2}
+  .tile .sub{font-size:.82rem;color:var(--ink-soft);margin-top:2px}
+  .precio-raro{color:var(--ochre);font-weight:600}
   @media (max-width:640px){
     .resumen{grid-template-columns:1fr 1fr}
     .tile.debe{grid-column:1 / -1}
@@ -101,7 +103,11 @@
     background:var(--surface);border:1px solid var(--line);border-radius:12px;
     padding:18px;box-shadow:var(--shadow);
   }
-  form.anotar{display:grid;grid-template-columns:auto 1fr 1fr auto auto;gap:12px;align-items:end;margin-top:14px}
+  form.anotar{display:grid;grid-template-columns:9.5rem minmax(0,1fr) 8.6rem 8.6rem;gap:12px 12px;align-items:end;margin-top:14px}
+  form.anotar .campo.nota{grid-column:1 / 3}
+  form.anotar .accion{grid-column:3 / -1;display:flex;gap:12px;align-items:center;justify-content:flex-end}
+  .total-vivo{font-family:var(--display);font-weight:700;font-size:1.1rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .total-vivo strong{color:var(--ink)}
   .campo{display:flex;flex-direction:column;gap:5px;min-width:0}
   .campo label{font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;font-weight:600;color:var(--ink-soft)}
   input{
@@ -109,14 +115,12 @@
     background:var(--ground);border:1px solid var(--line);border-radius:8px;
     padding:9px 11px;width:100%;min-width:0;
   }
-  input[type="date"]{max-width:9.5rem}
-  #monto{max-width:7.5rem;font-variant-numeric:tabular-nums}
+  #cantidad,#precio{font-variant-numeric:tabular-nums}
   input:focus-visible,button:focus-visible,summary:focus-visible{outline:2.5px solid var(--ochre);outline-offset:2px}
   @media (max-width:720px){
     form.anotar{grid-template-columns:1fr 1fr}
-    form.anotar .campo.detalle{grid-column:1 / -1}
-    form.anotar .accion{grid-column:1 / -1}
-    input[type="date"],#monto{max-width:none}
+    form.anotar .campo.cliente,form.anotar .campo.nota,form.anotar .accion{grid-column:1 / -1}
+    form.anotar .accion{justify-content:space-between}
   }
 
   button{font-family:var(--body);font-size:.94rem;font-weight:600;cursor:pointer;border-radius:8px;border:1px solid transparent}
@@ -208,7 +212,7 @@
   <header>
     <p class="eyebrow">Libreta de ventas</p>
     <h1>Cuentas de cacahuates</h1>
-    <p class="lede">Anota quién compró, cuándo y cuánto. Cuando te paguen, dale a <strong>Ya pagó</strong>; si alguien se tarda, copia el recordatorio y pégalo en WhatsApp.</p>
+    <p class="lede">Cada bolsa son <strong>$4 USD</strong>: solo anota quién compró y cuántas bolsas se llevó. Cuando te paguen, dale a <strong>Ya pagó</strong>; si alguien se tarda, copia el recordatorio y pégalo en WhatsApp.</p>
   </header>
 
   <section class="resumen" id="resumen"></section>
@@ -220,20 +224,25 @@
         <label for="fecha">Cuándo</label>
         <input type="date" id="fecha" name="fecha" required>
       </div>
-      <div class="campo">
+      <div class="campo cliente">
         <label for="cliente">Quién compró</label>
         <input type="text" id="cliente" name="cliente" placeholder="Doña Mari" list="clientes" required maxlength="60">
         <datalist id="clientes"></datalist>
       </div>
-      <div class="campo detalle">
-        <label for="detalle">Qué se llevó</label>
-        <input type="text" id="detalle" name="detalle" placeholder="3 bolsas grandes" maxlength="80">
+      <div class="campo">
+        <label for="cantidad">Cuántas bolsas</label>
+        <input type="text" id="cantidad" name="cantidad" inputmode="decimal" value="1" required>
       </div>
       <div class="campo">
-        <label for="monto">Cuánto ($)</label>
-        <input type="text" id="monto" name="monto" inputmode="decimal" placeholder="90" required>
+        <label for="precio">Precio c/u (USD)</label>
+        <input type="text" id="precio" name="precio" inputmode="decimal" value="4">
+      </div>
+      <div class="campo nota">
+        <label for="detalle">Nota (opcional)</label>
+        <input type="text" id="detalle" name="detalle" placeholder="dos sin sal" maxlength="80">
       </div>
       <div class="accion">
+        <span class="total-vivo" id="total-vivo"></span>
         <button type="submit" class="btn">Anotar venta</button>
       </div>
     </form>
@@ -275,6 +284,7 @@
   "use strict";
 
   var LS_KEY = "cacahuates.ventas.v1";
+  var PRECIO = 4;          // cada bolsa vale $4 USD; se puede cambiar venta por venta
   var ventas = [];        // ventas reales
   var ejemplo = [];       // filas de ejemplo, nunca se guardan
   var db = null;
@@ -288,6 +298,12 @@
   }
   var nf = new Intl.NumberFormat("es-MX", {maximumFractionDigits:2});
   function dinero(n){ return nf.format(Math.round(n*100)/100); }
+  function numero(txt){
+    var limpio = String(txt).replace(/[^0-9.,-]/g,"").replace(/,/g,".");
+    return parseFloat(limpio);
+  }
+  function cant(n){ return nf.format(Math.round(n*100)/100); }
+  function bolsas(n){ return cant(n) + (n === 1 ? " bolsa" : " bolsas"); }
   function hoyISO(){
     var d = new Date(), m = String(d.getMonth()+1).padStart(2,"0"), dd = String(d.getDate()).padStart(2,"0");
     return d.getFullYear()+"-"+m+"-"+dd;
@@ -320,12 +336,24 @@
   }
   function normaliza(v){
     if(!v || typeof v !== "object") return null;
+    var cantidad = Number(v.cantidad) > 0 ? Number(v.cantidad) : 0;
+    var precio   = Number(v.precio)   > 0 ? Number(v.precio)   : 0;
+    var monto    = Number(v.monto)    > 0 ? Number(v.monto)    : 0;
+    // ventas viejas o incompletas: completa lo que falte con el precio de $4
+    if(cantidad && !precio && monto) precio = monto / cantidad;
+    if(precio && !cantidad && monto) cantidad = monto / precio;
+    if(!cantidad && !precio){ precio = PRECIO; cantidad = monto ? monto / PRECIO : 1; }
+    if(!precio) precio = PRECIO;
+    if(!cantidad) cantidad = 1;
+    if(!monto) monto = cantidad * precio;
     return {
       id: String(v.id || idNuevo()),
       fecha: String(v.fecha || hoyISO()).slice(0,10),
       cliente: String(v.cliente || "").slice(0,60),
       detalle: String(v.detalle || "").slice(0,80),
-      monto: Number(v.monto) || 0,
+      cantidad: Math.round(cantidad*100)/100,
+      precio: Math.round(precio*100)/100,
+      monto: Math.round(monto*100)/100,
       pagado: !!v.pagado,
       pagadoEn: v.pagadoEn ? String(v.pagadoEn).slice(0,10) : ""
     };
@@ -378,10 +406,10 @@
       return t.getFullYear()+"-"+m+"-"+dd;
     }
     ejemplo = [
-      {id:"ej1", fecha:hace(0), cliente:"Doña Mari", detalle:"3 bolsas grandes", monto:90, pagado:false, pagadoEn:"", ej:true},
-      {id:"ej2", fecha:hace(5), cliente:"Doña Mari", detalle:"1 bolsa grande", monto:30, pagado:false, pagadoEn:"", ej:true},
-      {id:"ej3", fecha:hace(2), cliente:"Beto del taller", detalle:"2 bolsas chicas", monto:40, pagado:false, pagadoEn:"", ej:true},
-      {id:"ej4", fecha:hace(3), cliente:"Ximena", detalle:"4 bolsas chicas", monto:60, pagado:true, pagadoEn:hace(1), ej:true}
+      {id:"ej1", fecha:hace(0), cliente:"Doña Mari", detalle:"", cantidad:3, precio:4, monto:12, pagado:false, pagadoEn:"", ej:true},
+      {id:"ej2", fecha:hace(5), cliente:"Doña Mari", detalle:"dos sin sal", cantidad:2, precio:4, monto:8, pagado:false, pagadoEn:"", ej:true},
+      {id:"ej3", fecha:hace(2), cliente:"Beto del taller", detalle:"", cantidad:5, precio:4, monto:20, pagado:false, pagadoEn:"", ej:true},
+      {id:"ej4", fecha:hace(3), cliente:"Ximena", detalle:"se llevó harto", cantidad:10, precio:3.5, monto:35, pagado:true, pagadoEn:hace(1), ej:true}
     ];
   }
   function enEjemplo(){ return ventas.length === 0 && ejemplo.length > 0; }
@@ -401,6 +429,7 @@
 
     var porCobrar = pend.reduce(function(a,v){ return a + v.monto; }, 0);
     var cobrado   = pag.reduce(function(a,v){ return a + v.monto; }, 0);
+    var bolsasPend = pend.reduce(function(a,v){ return a + v.cantidad; }, 0);
 
     // agrupar por cliente
     var mapa = {};
@@ -417,11 +446,12 @@
     });
 
     document.getElementById("resumen").innerHTML =
-      '<div class="tile debe"><p class="eyebrow">Me deben en total</p>' +
-        '<div class="big num">$' + dinero(porCobrar) + '</div></div>' +
+      '<div class="tile debe"><p class="eyebrow">Me deben en total (USD)</p>' +
+        '<div class="big num">$' + dinero(porCobrar) + '</div>' +
+        '<p class="sub">' + bolsas(bolsasPend) + ' sin pagar</p></div>' +
       '<div class="tile"><p class="eyebrow">Personas que deben</p>' +
         '<div class="mid num">' + grupos.length + '</div></div>' +
-      '<div class="tile"><p class="eyebrow">Ya cobrado</p>' +
+      '<div class="tile"><p class="eyebrow">Ya cobrado (USD)</p>' +
         '<div class="mid num">$' + dinero(cobrado) + '</div></div>';
 
     document.getElementById("pendientes-nota").innerHTML = demo
@@ -456,7 +486,7 @@
       ? pag.slice(0,40).map(function(v){
           return '<div class="venta">' +
             '<span class="fecha">' + esc(fechaCorta(v.fecha)) + '</span>' +
-            '<span class="detalle"><strong>' + esc(v.cliente) + '</strong>' + (v.detalle ? " &middot; " + esc(v.detalle) : "") + '</span>' +
+            '<span class="detalle"><strong>' + esc(v.cliente) + '</strong> &middot; ' + loQueSeLlevo(v) + '</span>' +
             '<span class="monto">$' + dinero(v.monto) + '</span>' +
             '<span class="acciones"><span class="check">✓</span>' +
               '<button type="button" class="btn-mini" data-despagar="' + v.id + '">Volver a deuda</button></span>' +
@@ -471,10 +501,17 @@
     }).join("");
   }
 
+  function loQueSeLlevo(v){
+    var raro = Math.abs(v.precio - PRECIO) > 0.001;
+    return '<span' + (raro ? ' class="precio-raro"' : '') + '>' + esc(bolsas(v.cantidad)) +
+      ' &times; $' + dinero(v.precio) + '</span>' +
+      (v.detalle ? ' <span style="color:var(--ink-soft)">&middot; ' + esc(v.detalle) + '</span>' : '');
+  }
+
   function fila(v){
     return '<div class="venta">' +
       '<span class="fecha">' + esc(fechaCorta(v.fecha)) + '</span>' +
-      '<span class="detalle">' + (v.detalle ? esc(v.detalle) : '<span style="color:var(--ink-soft)">sin detalle</span>') + '</span>' +
+      '<span class="detalle">' + loQueSeLlevo(v) + '</span>' +
       '<span class="monto">$' + dinero(v.monto) + '</span>' +
       '<span class="acciones">' +
         '<button type="button" class="btn-pay" data-pagar="' + v.id + '">Ya pagó</button>' +
@@ -530,28 +567,52 @@
     document.getElementById("dlg-copiar").close();
   });
 
+  /* ---------- total en vivo ---------- */
+  function leeCantidad(){
+    var n = numero(document.getElementById("cantidad").value);
+    return (isFinite(n) && n > 0) ? n : NaN;
+  }
+  function leePrecio(){
+    var txt = document.getElementById("precio").value.trim();
+    if(!txt) return PRECIO;
+    var n = numero(txt);
+    return (isFinite(n) && n > 0) ? n : NaN;
+  }
+  function totalVivo(){
+    var c = leeCantidad(), pr = leePrecio(), el = document.getElementById("total-vivo");
+    if(isNaN(c) || isNaN(pr)){ el.innerHTML = ""; return; }
+    el.innerHTML = esc(bolsas(c)) + ' &times; $' + dinero(pr) + ' = <strong>$' + dinero(c*pr) + '</strong>';
+  }
+  document.getElementById("cantidad").addEventListener("input", totalVivo);
+  document.getElementById("precio").addEventListener("input", totalVivo);
+
   /* ---------- acciones ---------- */
   document.getElementById("form-venta").addEventListener("submit", function(e){
     e.preventDefault();
     var cliente = document.getElementById("cliente").value.trim();
-    var crudo = document.getElementById("monto").value.replace(/[^0-9.,-]/g,"").replace(/,/g,".");
-    var monto = parseFloat(crudo);
+    var cantidad = leeCantidad();
+    var precio = leePrecio();
     var fecha = document.getElementById("fecha").value || hoyISO();
     var detalle = document.getElementById("detalle").value.trim();
 
     if(!cliente){ aviso("Falta el nombre de quien compró"); document.getElementById("cliente").focus(); return; }
-    if(!isFinite(monto) || monto <= 0){ aviso("Pon cuánto fue la venta, por ejemplo 90"); document.getElementById("monto").focus(); return; }
+    if(isNaN(cantidad)){ aviso("Pon cuántas bolsas se llevó, por ejemplo 3"); document.getElementById("cantidad").focus(); return; }
+    if(isNaN(precio)){ aviso("El precio por bolsa no se entiende; déjalo en 4"); document.getElementById("precio").focus(); return; }
 
+    var monto = Math.round(cantidad * precio * 100) / 100;
     ejemplo = [];
-    ventas.push({id:idNuevo(), fecha:fecha, cliente:cliente, detalle:detalle, monto:monto, pagado:false, pagadoEn:""});
+    ventas.push({id:idNuevo(), fecha:fecha, cliente:cliente, detalle:detalle,
+                 cantidad:cantidad, precio:precio, monto:monto, pagado:false, pagadoEn:""});
     guardarMes(mesDe(fecha));
     pinta();
-    aviso("Anotado: " + cliente + " $" + dinero(monto));
+    aviso("Anotado: " + cliente + ", " + bolsas(cantidad) + " = $" + dinero(monto));
 
     document.getElementById("cliente").value = "";
     document.getElementById("detalle").value = "";
-    document.getElementById("monto").value = "";
+    document.getElementById("cantidad").value = "1";
+    document.getElementById("precio").value = String(PRECIO);
     document.getElementById("fecha").value = hoyISO();
+    totalVivo();
     document.getElementById("cliente").focus();
   });
 
@@ -632,6 +693,8 @@
 
   /* ---------- arranque ---------- */
   document.getElementById("fecha").value = hoyISO();
+  document.getElementById("precio").value = String(PRECIO);
+  totalVivo();
   leerLocal();
   armaEjemplo();
   pinta();
