@@ -1,0 +1,639 @@
+<title>Cuentas de cacahuates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#F1F0E7;
+    --surface:#FFFDF8;
+    --surface-2:#EAE8DB;
+    --ink:#16302C;
+    --ink-soft:#5A6660;
+    --line:#D9D6C7;
+    --ochre:#C97B12;
+    --ochre-soft:#F7E9CF;
+    --teal:#17504C;
+    --on-teal:#FFFDF8;
+    --green:#2E6B41;
+    --green-soft:#E0EEE1;
+    --red:#9E3B22;
+    --shadow:0 1px 2px rgba(22,48,44,.07), 0 8px 24px -18px rgba(22,48,44,.35);
+    --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+    --body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#13181A;
+      --surface:#1C2325;
+      --surface-2:#242D2F;
+      --ink:#ECE7DA;
+      --ink-soft:#9AA6A1;
+      --line:#33403F;
+      --ochre:#E5A33F;
+      --ochre-soft:#3A2D16;
+      --teal:#6FC3B8;
+      --on-teal:#12201F;
+      --green:#7BC08C;
+      --green-soft:#1E2F23;
+      --red:#E08063;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 26px -18px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#13181A;
+    --surface:#1C2325;
+    --surface-2:#242D2F;
+    --ink:#ECE7DA;
+    --ink-soft:#9AA6A1;
+    --line:#33403F;
+    --ochre:#E5A33F;
+    --ochre-soft:#3A2D16;
+    --teal:#6FC3B8;
+    --on-teal:#12201F;
+    --green:#7BC08C;
+    --green-soft:#1E2F23;
+    --red:#E08063;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 26px -18px rgba(0,0,0,.8);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--body);
+    font-size:16px;
+    line-height:1.5;
+    margin:0;
+    padding-block:28px 56px;
+    padding-inline:18px;
+  }
+  .wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+
+  h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+  h1{font-size:2.1rem;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+  h2{font-size:1.05rem;font-weight:700}
+  .eyebrow{
+    font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;
+    font-weight:600;color:var(--ink-soft);margin:0;
+  }
+  .lede{color:var(--ink-soft);margin:6px 0 0;max-width:52ch}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ---- resumen ---- */
+  .resumen{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px}
+  .tile{
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;display:flex;flex-direction:column;gap:2px;
+  }
+  .tile.debe{
+    background:var(--ochre-soft);border-color:color-mix(in srgb,var(--ochre) 40%,var(--line));
+  }
+  .tile .big{font-family:var(--display);font-weight:800;font-size:2.3rem;line-height:1.05;letter-spacing:-.02em}
+  .tile.debe .big{color:var(--ochre)}
+  .tile .mid{font-family:var(--display);font-weight:700;font-size:1.45rem;line-height:1.2}
+  @media (max-width:640px){
+    .resumen{grid-template-columns:1fr 1fr}
+    .tile.debe{grid-column:1 / -1}
+  }
+
+  /* ---- formulario ---- */
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:18px;box-shadow:var(--shadow);
+  }
+  form.anotar{display:grid;grid-template-columns:auto 1fr 1fr auto auto;gap:12px;align-items:end;margin-top:14px}
+  .campo{display:flex;flex-direction:column;gap:5px;min-width:0}
+  .campo label{font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;font-weight:600;color:var(--ink-soft)}
+  input{
+    font-family:var(--body);font-size:1rem;color:var(--ink);
+    background:var(--ground);border:1px solid var(--line);border-radius:8px;
+    padding:9px 11px;width:100%;min-width:0;
+  }
+  input[type="date"]{max-width:9.5rem}
+  #monto{max-width:7.5rem;font-variant-numeric:tabular-nums}
+  input:focus-visible,button:focus-visible,summary:focus-visible{outline:2.5px solid var(--ochre);outline-offset:2px}
+  @media (max-width:720px){
+    form.anotar{grid-template-columns:1fr 1fr}
+    form.anotar .campo.detalle{grid-column:1 / -1}
+    form.anotar .accion{grid-column:1 / -1}
+    input[type="date"],#monto{max-width:none}
+  }
+
+  button{font-family:var(--body);font-size:.94rem;font-weight:600;cursor:pointer;border-radius:8px;border:1px solid transparent}
+  .btn{background:var(--teal);color:var(--on-teal);padding:10px 16px;white-space:nowrap}
+  .btn:hover{filter:brightness(1.12)}
+  .btn-ghost{background:transparent;color:var(--ink);border-color:var(--line);padding:8px 13px}
+  .btn-ghost:hover{background:var(--surface-2)}
+  .btn-pay{background:transparent;color:var(--green);border-color:color-mix(in srgb,var(--green) 45%,var(--line));padding:7px 12px}
+  .btn-pay:hover{background:var(--green-soft)}
+  .btn-copy{background:var(--ochre);color:#2A1C05;padding:9px 14px;white-space:nowrap}
+  .btn-copy:hover{filter:brightness(1.08)}
+  .btn-mini{background:transparent;color:var(--ink-soft);border-color:transparent;padding:6px 8px;font-size:.82rem}
+  .btn-mini:hover{color:var(--red);background:var(--surface-2)}
+  .btn-mini[data-confirm="1"]{color:var(--red);border-color:var(--red)}
+
+  /* ---- deudas ---- */
+  .seccion-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .grupos{display:flex;flex-direction:column;gap:12px}
+  .grupo{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .grupo-head{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    padding:14px 16px;background:var(--surface-2);border-bottom:1px solid var(--line);
+  }
+  .quien{display:flex;flex-direction:column;gap:1px;min-width:0}
+  .quien strong{font-family:var(--display);font-weight:700;font-size:1.1rem;overflow-wrap:anywhere}
+  .quien span{font-size:.82rem;color:var(--ink-soft)}
+  .grupo-total{font-family:var(--display);font-weight:800;font-size:1.35rem;color:var(--ochre);font-variant-numeric:tabular-nums}
+  .grupo-acciones{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+  .venta{
+    display:grid;grid-template-columns:5.6rem 1fr 5.5rem auto;gap:12px;align-items:center;
+    padding:11px 16px;border-top:1px solid var(--line);
+  }
+  .grupo .venta:first-of-type{border-top:none}
+  .venta .fecha{font-size:.84rem;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+  .venta .detalle{overflow-wrap:anywhere}
+  .venta .monto{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+  .venta .acciones{display:flex;gap:4px;justify-content:flex-end;align-items:center}
+  @media (max-width:600px){
+    .venta{grid-template-columns:1fr auto;row-gap:6px}
+    .venta .fecha{grid-column:1}
+    .venta .monto{grid-column:2;grid-row:1}
+    .venta .detalle{grid-column:1 / -1}
+    .venta .acciones{grid-column:1 / -1;justify-content:flex-start}
+  }
+
+  .badge{
+    font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;font-weight:600;
+    padding:2px 7px;border-radius:999px;background:var(--ochre-soft);color:var(--ochre);
+    border:1px solid color-mix(in srgb,var(--ochre) 35%,transparent);
+  }
+  .vacio{color:var(--ink-soft);padding:18px 2px;text-align:center}
+
+  /* ---- pagadas ---- */
+  details.pagadas summary{
+    cursor:pointer;font-family:var(--display);font-weight:700;font-size:1.05rem;
+    padding:4px 0;list-style-position:inside;
+  }
+  details.pagadas summary::marker{color:var(--ochre)}
+  details.pagadas summary .eyebrow{display:inline;margin-left:6px}
+  .lista-pagadas{margin-top:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+  .lista-pagadas .venta .monto{color:var(--ink-soft)}
+  .check{color:var(--green);font-weight:700}
+
+  /* ---- pie, toast, dialogo ---- */
+  footer{color:var(--ink-soft);font-size:.84rem;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .dot{opacity:.5}
+  #toast{
+    position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(120%);
+    background:var(--ink);color:var(--ground);padding:11px 18px;border-radius:999px;
+    font-weight:600;font-size:.92rem;box-shadow:var(--shadow);z-index:50;
+    transition:transform .22s ease;max-width:calc(100% - 36px);text-align:center;
+    visibility:hidden;
+  }
+  #toast.ver{transform:translateX(-50%) translateY(0);visibility:visible}
+  dialog{
+    border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);
+    max-width:min(480px,92vw);padding:20px;box-shadow:var(--shadow);
+  }
+  dialog::backdrop{background:rgba(10,20,18,.45)}
+  dialog textarea{
+    width:100%;font-family:var(--body);font-size:1rem;color:var(--ink);background:var(--ground);
+    border:1px solid var(--line);border-radius:8px;padding:10px;margin:12px 0;min-height:5.5rem;
+  }
+  @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Libreta de ventas</p>
+    <h1>Cuentas de cacahuates</h1>
+    <p class="lede">Anota quién compró, cuándo y cuánto. Cuando te paguen, dale a <strong>Ya pagó</strong>; si alguien se tarda, copia el recordatorio y pégalo en WhatsApp.</p>
+  </header>
+
+  <section class="resumen" id="resumen"></section>
+
+  <section class="card">
+    <h2>Anotar una venta</h2>
+    <form class="anotar" id="form-venta" autocomplete="off">
+      <div class="campo">
+        <label for="fecha">Cuándo</label>
+        <input type="date" id="fecha" name="fecha" required>
+      </div>
+      <div class="campo">
+        <label for="cliente">Quién compró</label>
+        <input type="text" id="cliente" name="cliente" placeholder="Doña Mari" list="clientes" required maxlength="60">
+        <datalist id="clientes"></datalist>
+      </div>
+      <div class="campo detalle">
+        <label for="detalle">Qué se llevó</label>
+        <input type="text" id="detalle" name="detalle" placeholder="3 bolsas grandes" maxlength="80">
+      </div>
+      <div class="campo">
+        <label for="monto">Cuánto ($)</label>
+        <input type="text" id="monto" name="monto" inputmode="decimal" placeholder="90" required>
+      </div>
+      <div class="accion">
+        <button type="submit" class="btn">Anotar venta</button>
+      </div>
+    </form>
+  </section>
+
+  <section>
+    <div class="seccion-head">
+      <h2>Me deben</h2>
+      <span class="eyebrow" id="pendientes-nota"></span>
+    </div>
+    <div class="grupos" id="grupos"></div>
+  </section>
+
+  <section>
+    <details class="pagadas" id="det-pagadas">
+      <summary>Ya pagadas <span class="eyebrow" id="pagadas-cuenta"></span></summary>
+      <div class="lista-pagadas" id="lista-pagadas"></div>
+    </details>
+  </section>
+
+  <footer>
+    <span id="guardado">Guardando…</span>
+    <span class="dot">•</span>
+    <span>Agrega esta página a tus favoritos en Chrome para abrirla rápido.</span>
+  </footer>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="dlg-copiar">
+  <h2>Copia el mensaje a mano</h2>
+  <p class="lede">Chrome no dejó copiarlo solo. Selecciona el texto y usa Ctrl+C.</p>
+  <textarea id="dlg-texto" readonly></textarea>
+  <button type="button" class="btn" id="dlg-cerrar">Listo</button>
+</dialog>
+
+<script>
+(function(){
+  "use strict";
+
+  var LS_KEY = "cacahuates.ventas.v1";
+  var ventas = [];        // ventas reales
+  var ejemplo = [];       // filas de ejemplo, nunca se guardan
+  var db = null;
+  var primerSnapshot = true;
+
+  /* ---------- utilidades ---------- */
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+    });
+  }
+  var nf = new Intl.NumberFormat("es-MX", {maximumFractionDigits:2});
+  function dinero(n){ return nf.format(Math.round(n*100)/100); }
+  function hoyISO(){
+    var d = new Date(), m = String(d.getMonth()+1).padStart(2,"0"), dd = String(d.getDate()).padStart(2,"0");
+    return d.getFullYear()+"-"+m+"-"+dd;
+  }
+  var MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  function fechaCorta(iso){
+    var p = String(iso||"").split("-");
+    if(p.length !== 3) return iso || "";
+    var dia = Number(p[2]), mes = MESES[Number(p[1])-1] || "";
+    if(iso === hoyISO()) return "hoy";
+    return dia + " " + mes;
+  }
+  function mesDe(iso){ return String(iso||hoyISO()).slice(0,7); }
+  function idNuevo(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  /* ---------- el mensaje de recordatorio (texto tal cual, no editar) ---------- */
+  function mensajeRecordatorio(total){
+    return "Holaaa, tengo anotado aqui una deuda de $" + dinero(total) + ", no hay prisa pero nomas pra recordarte ";
+  }
+
+  /* ---------- guardado ---------- */
+  function espejoLocal(){
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(ventas)); }catch(e){}
+  }
+  function leerLocal(){
+    try{
+      var v = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+      if(Array.isArray(v)) ventas = v.map(normaliza).filter(Boolean);
+    }catch(e){}
+  }
+  function normaliza(v){
+    if(!v || typeof v !== "object") return null;
+    return {
+      id: String(v.id || idNuevo()),
+      fecha: String(v.fecha || hoyISO()).slice(0,10),
+      cliente: String(v.cliente || "").slice(0,60),
+      detalle: String(v.detalle || "").slice(0,80),
+      monto: Number(v.monto) || 0,
+      pagado: !!v.pagado,
+      pagadoEn: v.pagadoEn ? String(v.pagadoEn).slice(0,10) : ""
+    };
+  }
+  function guardarMes(mes){
+    espejoLocal();
+    if(!db) return;
+    var items = ventas.filter(function(v){ return mesDe(v.fecha) === mes; });
+    var ref = db.doc("ventas/" + mes);
+    var p = items.length ? ref.set({items:items, actualizado:new Date().toISOString()}) : ref.delete();
+    p.catch(function(){ aviso("No se pudo guardar en la nube; quedó en este navegador."); });
+  }
+  function subirTodo(){
+    var meses = {};
+    ventas.forEach(function(v){ meses[mesDe(v.fecha)] = true; });
+    Object.keys(meses).forEach(guardarMes);
+  }
+  function marcaGuardado(txt){ document.getElementById("guardado").textContent = txt; }
+
+  (async function(){
+    try{
+      db = window.claude && window.claude.use ? await window.claude.use("db") : null;
+    }catch(e){ db = null; }
+    if(!db){ marcaGuardado("Se guarda en este navegador"); return; }
+    marcaGuardado("Se guarda en tu cuenta");
+    db.collection("ventas").onSnapshot(function(snap){
+      var deLaNube = [];
+      snap.docs.forEach(function(d){
+        var data = d.data() || {};
+        if(Array.isArray(data.items)) deLaNube = deLaNube.concat(data.items);
+      });
+      if(primerSnapshot){
+        primerSnapshot = false;
+        if(!deLaNube.length && ventas.length){ subirTodo(); return; }
+      }
+      ventas = deLaNube.map(normaliza).filter(Boolean);
+      espejoLocal();
+      pinta();
+    }, function(){
+      db = null;
+      marcaGuardado("Se guarda en este navegador");
+    });
+  })();
+
+  /* ---------- ejemplo (se va con tu primera venta) ---------- */
+  function armaEjemplo(){
+    function hace(d){
+      var t = new Date(); t.setDate(t.getDate()-d);
+      var m = String(t.getMonth()+1).padStart(2,"0"), dd = String(t.getDate()).padStart(2,"0");
+      return t.getFullYear()+"-"+m+"-"+dd;
+    }
+    ejemplo = [
+      {id:"ej1", fecha:hace(0), cliente:"Doña Mari", detalle:"3 bolsas grandes", monto:90, pagado:false, pagadoEn:"", ej:true},
+      {id:"ej2", fecha:hace(5), cliente:"Doña Mari", detalle:"1 bolsa grande", monto:30, pagado:false, pagadoEn:"", ej:true},
+      {id:"ej3", fecha:hace(2), cliente:"Beto del taller", detalle:"2 bolsas chicas", monto:40, pagado:false, pagadoEn:"", ej:true},
+      {id:"ej4", fecha:hace(3), cliente:"Ximena", detalle:"4 bolsas chicas", monto:60, pagado:true, pagadoEn:hace(1), ej:true}
+    ];
+  }
+  function enEjemplo(){ return ventas.length === 0 && ejemplo.length > 0; }
+  function lista(){ return enEjemplo() ? ejemplo : ventas; }
+  function busca(id){
+    var arr = lista();
+    for(var i=0;i<arr.length;i++){ if(arr[i].id === id) return arr[i]; }
+    return null;
+  }
+
+  /* ---------- pintar ---------- */
+  function pinta(){
+    var todas = lista();
+    var demo = enEjemplo();
+    var pend = todas.filter(function(v){ return !v.pagado; });
+    var pag  = todas.filter(function(v){ return v.pagado; });
+
+    var porCobrar = pend.reduce(function(a,v){ return a + v.monto; }, 0);
+    var cobrado   = pag.reduce(function(a,v){ return a + v.monto; }, 0);
+
+    // agrupar por cliente
+    var mapa = {};
+    pend.forEach(function(v){
+      var k = v.cliente.trim().toLowerCase() || "sin nombre";
+      if(!mapa[k]) mapa[k] = {nombre:v.cliente.trim() || "Sin nombre", total:0, items:[]};
+      mapa[k].total += v.monto;
+      mapa[k].items.push(v);
+    });
+    var grupos = Object.keys(mapa).map(function(k){ return mapa[k]; })
+      .sort(function(a,b){ return b.total - a.total; });
+    grupos.forEach(function(g){
+      g.items.sort(function(a,b){ return a.fecha < b.fecha ? 1 : -1; });
+    });
+
+    document.getElementById("resumen").innerHTML =
+      '<div class="tile debe"><p class="eyebrow">Me deben en total</p>' +
+        '<div class="big num">$' + dinero(porCobrar) + '</div></div>' +
+      '<div class="tile"><p class="eyebrow">Personas que deben</p>' +
+        '<div class="mid num">' + grupos.length + '</div></div>' +
+      '<div class="tile"><p class="eyebrow">Ya cobrado</p>' +
+        '<div class="mid num">$' + dinero(cobrado) + '</div></div>';
+
+    document.getElementById("pendientes-nota").innerHTML = demo
+      ? 'Ejemplo &mdash; se borra al anotar tu primera venta'
+      : (pend.length ? pend.length + (pend.length === 1 ? " venta sin pagar" : " ventas sin pagar") : "");
+
+    var cont = document.getElementById("grupos");
+    if(!grupos.length){
+      cont.innerHTML = '<p class="vacio">Nadie te debe nada ahorita. 🥜</p>';
+    }else{
+      cont.innerHTML = grupos.map(function(g){
+        return '<article class="grupo">' +
+          '<div class="grupo-head">' +
+            '<div class="quien"><strong>' + esc(g.nombre) + '</strong>' +
+              '<span>' + g.items.length + (g.items.length === 1 ? " venta" : " ventas") + ' sin pagar' +
+              (demo ? ' &middot; <span class="badge">ejemplo</span>' : '') + '</span></div>' +
+            '<div class="grupo-acciones">' +
+              '<span class="grupo-total">$' + dinero(g.total) + '</span>' +
+              '<button type="button" class="btn-copy" data-copiar="' + esc(g.nombre) + '" data-total="' + g.total + '">Copiar mensaje de recordatorio</button>' +
+              '<button type="button" class="btn-pay" data-pagar-todo="' + esc(g.nombre) + '">Ya pagó todo</button>' +
+            '</div>' +
+          '</div>' +
+          g.items.map(fila).join("") +
+        '</article>';
+      }).join("");
+    }
+
+    document.getElementById("pagadas-cuenta").textContent = pag.length ? "(" + pag.length + ")" : "(0)";
+    var lp = document.getElementById("lista-pagadas");
+    pag.sort(function(a,b){ return (a.pagadoEn||a.fecha) < (b.pagadoEn||b.fecha) ? 1 : -1; });
+    lp.innerHTML = pag.length
+      ? pag.slice(0,40).map(function(v){
+          return '<div class="venta">' +
+            '<span class="fecha">' + esc(fechaCorta(v.fecha)) + '</span>' +
+            '<span class="detalle"><strong>' + esc(v.cliente) + '</strong>' + (v.detalle ? " &middot; " + esc(v.detalle) : "") + '</span>' +
+            '<span class="monto">$' + dinero(v.monto) + '</span>' +
+            '<span class="acciones"><span class="check">✓</span>' +
+              '<button type="button" class="btn-mini" data-despagar="' + v.id + '">Volver a deuda</button></span>' +
+          '</div>';
+        }).join("")
+      : '<p class="vacio">Aquí van apareciendo las ventas que ya te pagaron.</p>';
+
+    var nombres = {};
+    ventas.forEach(function(v){ if(v.cliente.trim()) nombres[v.cliente.trim()] = true; });
+    document.getElementById("clientes").innerHTML = Object.keys(nombres).map(function(n){
+      return '<option value="' + esc(n) + '"></option>';
+    }).join("");
+  }
+
+  function fila(v){
+    return '<div class="venta">' +
+      '<span class="fecha">' + esc(fechaCorta(v.fecha)) + '</span>' +
+      '<span class="detalle">' + (v.detalle ? esc(v.detalle) : '<span style="color:var(--ink-soft)">sin detalle</span>') + '</span>' +
+      '<span class="monto">$' + dinero(v.monto) + '</span>' +
+      '<span class="acciones">' +
+        '<button type="button" class="btn-pay" data-pagar="' + v.id + '">Ya pagó</button>' +
+        '<button type="button" class="btn-mini" data-borrar="' + v.id + '">Borrar</button>' +
+      '</span>' +
+    '</div>';
+  }
+
+  /* ---------- avisos ---------- */
+  var tToast;
+  function aviso(txt){
+    var t = document.getElementById("toast");
+    t.textContent = txt;
+    t.classList.add("ver");
+    clearTimeout(tToast);
+    tToast = setTimeout(function(){ t.classList.remove("ver"); }, 2600);
+  }
+
+  /* ---------- copiar ---------- */
+  async function alPortapapeles(texto){
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        await navigator.clipboard.writeText(texto);
+        return true;
+      }
+    }catch(e){}
+    try{
+      var ta = document.createElement("textarea");
+      ta.value = texto;
+      ta.setAttribute("readonly","");
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = document.execCommand("copy");
+      ta.remove();
+      if(ok) return true;
+    }catch(e){}
+    return false;
+  }
+  function copiaManual(texto){
+    var dlg = document.getElementById("dlg-copiar");
+    document.getElementById("dlg-texto").value = texto;
+    if(typeof dlg.showModal === "function"){
+      dlg.showModal();
+      var ta = document.getElementById("dlg-texto");
+      ta.focus(); ta.select();
+    }else{
+      aviso("Copia el mensaje desde el recuadro");
+    }
+  }
+  document.getElementById("dlg-cerrar").addEventListener("click", function(){
+    document.getElementById("dlg-copiar").close();
+  });
+
+  /* ---------- acciones ---------- */
+  document.getElementById("form-venta").addEventListener("submit", function(e){
+    e.preventDefault();
+    var cliente = document.getElementById("cliente").value.trim();
+    var crudo = document.getElementById("monto").value.replace(/[^0-9.,-]/g,"").replace(/,/g,".");
+    var monto = parseFloat(crudo);
+    var fecha = document.getElementById("fecha").value || hoyISO();
+    var detalle = document.getElementById("detalle").value.trim();
+
+    if(!cliente){ aviso("Falta el nombre de quien compró"); document.getElementById("cliente").focus(); return; }
+    if(!isFinite(monto) || monto <= 0){ aviso("Pon cuánto fue la venta, por ejemplo 90"); document.getElementById("monto").focus(); return; }
+
+    ejemplo = [];
+    ventas.push({id:idNuevo(), fecha:fecha, cliente:cliente, detalle:detalle, monto:monto, pagado:false, pagadoEn:""});
+    guardarMes(mesDe(fecha));
+    pinta();
+    aviso("Anotado: " + cliente + " $" + dinero(monto));
+
+    document.getElementById("cliente").value = "";
+    document.getElementById("detalle").value = "";
+    document.getElementById("monto").value = "";
+    document.getElementById("fecha").value = hoyISO();
+    document.getElementById("cliente").focus();
+  });
+
+  document.body.addEventListener("click", async function(e){
+    var b = e.target.closest("button");
+    if(!b) return;
+
+    // copiar recordatorio
+    if(b.dataset.copiar !== undefined){
+      var texto = mensajeRecordatorio(Number(b.dataset.total) || 0);
+      var ok = await alPortapapeles(texto);
+      if(ok) aviso("Mensaje copiado, ya puedes pegarlo");
+      else copiaManual(texto);
+      return;
+    }
+
+    // ya pagó (una venta)
+    if(b.dataset.pagar){
+      var v = busca(b.dataset.pagar);
+      if(!v) return;
+      v.pagado = true; v.pagadoEn = hoyISO();
+      if(!enEjemplo()) guardarMes(mesDe(v.fecha));
+      pinta();
+      aviso(v.cliente + " pagó $" + dinero(v.monto));
+      return;
+    }
+
+    // ya pagó todo (un cliente)
+    if(b.dataset.pagarTodo !== undefined){
+      var nombre = b.dataset.pagarTodo.trim().toLowerCase();
+      var meses = {}, suma = 0;
+      lista().forEach(function(x){
+        if(!x.pagado && x.cliente.trim().toLowerCase() === nombre){
+          x.pagado = true; x.pagadoEn = hoyISO();
+          meses[mesDe(x.fecha)] = true; suma += x.monto;
+        }
+      });
+      if(!enEjemplo()) Object.keys(meses).forEach(guardarMes);
+      pinta();
+      aviso(b.dataset.pagarTodo + " pagó $" + dinero(suma));
+      return;
+    }
+
+    // volver a deuda
+    if(b.dataset.despagar){
+      var w = busca(b.dataset.despagar);
+      if(!w) return;
+      w.pagado = false; w.pagadoEn = "";
+      if(!enEjemplo()) guardarMes(mesDe(w.fecha));
+      pinta();
+      document.getElementById("det-pagadas").open = true;
+      return;
+    }
+
+    // borrar (dos toques para confirmar)
+    if(b.dataset.borrar){
+      if(b.dataset.confirm !== "1"){
+        b.dataset.confirm = "1";
+        b.textContent = "¿Seguro?";
+        setTimeout(function(){
+          if(b.isConnected){ b.dataset.confirm = ""; b.textContent = "Borrar"; }
+        }, 3500);
+        return;
+      }
+      var id = b.dataset.borrar;
+      if(enEjemplo()){
+        ejemplo = ejemplo.filter(function(x){ return x.id !== id; });
+      }else{
+        var quitada = busca(id);
+        ventas = ventas.filter(function(x){ return x.id !== id; });
+        if(quitada) guardarMes(mesDe(quitada.fecha));
+      }
+      pinta();
+      aviso("Venta borrada");
+      return;
+    }
+  });
+
+  /* ---------- arranque ---------- */
+  document.getElementById("fecha").value = hoyISO();
+  leerLocal();
+  armaEjemplo();
+  pinta();
+})();
+</script>
