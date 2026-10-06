@@ -162,6 +162,8 @@
   button{font-family:var(--body);font-size:.94rem;font-weight:600;cursor:pointer;border-radius:8px;border:1px solid transparent}
   .btn{background:var(--teal);color:var(--on-teal);padding:10px 16px;white-space:nowrap}
   .btn:hover{filter:brightness(1.12)}
+  .btn[disabled]{opacity:.45;cursor:not-allowed;filter:none}
+  .total-vivo.pide{font-family:var(--body);font-weight:600;font-size:.94rem;color:var(--ochre)}
   .btn-ghost{background:transparent;color:var(--ink);border-color:var(--line);padding:8px 13px}
   .btn-ghost:hover{background:var(--surface-2)}
   .btn-pay{background:transparent;color:var(--green);border-color:color-mix(in srgb,var(--green) 45%,var(--line));padding:7px 12px}
@@ -259,7 +261,7 @@
   <header>
     <p class="eyebrow">Libreta de ventas</p>
     <h1>Cuentas de cacahuates</h1>
-    <p class="lede">Hay bolsas de <strong>$4</strong> y de <strong>$2</strong>: escoge el precio, anota quién compró y cuántas se llevó. Cuando te paguen, dale a <strong>Ya pagó</strong>; si alguien se tarda, copia el recordatorio y pégalo en WhatsApp.</p>
+    <p class="lede">Hay bolsas de <strong>$2</strong> y de <strong>$4</strong>: escoge el precio, anota quién compró y cuántas se llevó. Cuando te paguen, dale a <strong>Ya pagó</strong>; si alguien se tarda, copia el recordatorio y pégalo en WhatsApp.</p>
   </header>
 
   <section class="resumen" id="resumen"></section>
@@ -305,10 +307,10 @@
       <div class="campo precio-campo">
         <span class="label-chips" id="lbl-precio">Precio por bolsa (USD)</span>
         <div class="chips" role="group" aria-labelledby="lbl-precio">
-          <button type="button" class="chip" data-precio="4" aria-pressed="true">$4</button>
           <button type="button" class="chip" data-precio="2" aria-pressed="false">$2</button>
+          <button type="button" class="chip" data-precio="4" aria-pressed="false">$4</button>
           <button type="button" class="chip" data-precio="otro" aria-pressed="false">Otro precio</button>
-          <input type="text" id="precio" name="precio" inputmode="decimal" value="4" hidden aria-label="Otro precio por bolsa">
+          <input type="text" id="precio" name="precio" inputmode="decimal" value="" hidden aria-label="Otro precio por bolsa">
         </div>
       </div>
       <div class="campo nota">
@@ -317,7 +319,7 @@
       </div>
       <div class="accion">
         <span class="total-vivo" id="total-vivo"></span>
-        <button type="submit" class="btn">Anotar venta</button>
+        <button type="submit" class="btn" id="btn-anotar">Anotar venta</button>
       </div>
     </form>
   </section>
@@ -366,7 +368,7 @@
   // inversion: lo que gastó comprando; cobradoBorrado: lo ya cobrado de ventas que borró de la lista
   var config = {inversion:0, cobradoBorrado:0};
   var PRECIO = 4;                 // precio de siempre
-  var PRECIOS = [4, 2];           // los dos precios de botón; cualquier otro se escribe a mano
+  var PRECIOS = [2, 4];           // los dos precios de botón; cualquier otro se escribe a mano
   var ventas = [];        // ventas reales
   var ejemplo = [];       // filas de ejemplo, nunca se guardan
   var db = null;
@@ -609,7 +611,8 @@
             '<span class="detalle"><strong>' + esc(v.cliente) + '</strong> &middot; ' + loQueSeLlevo(v) + '</span>' +
             '<span class="monto">$' + dinero(v.monto) + '</span>' +
             '<span class="acciones"><span class="check">✓</span>' +
-              '<button type="button" class="btn-mini" data-despagar="' + v.id + '">Volver a deuda</button></span>' +
+              '<button type="button" class="btn-mini" data-despagar="' + v.id + '">Volver a deuda</button>' +
+              '<button type="button" class="btn-mini" data-borrar="' + v.id + '">Borrar</button></span>' +
           '</div>';
         }).join("")
       : '<p class="vacio">Aquí van apareciendo las ventas que ya te pagaron.</p>';
@@ -747,15 +750,21 @@
     var n = numero(document.getElementById("cantidad").value);
     return (isFinite(n) && n > 0) ? n : NaN;
   }
+  var precioSel = null;    // null = todavía no escoge precio
   function leePrecio(){
+    if(precioSel === null) return NaN;
+    if(precioSel !== "otro") return Number(precioSel);
     var txt = document.getElementById("precio").value.trim();
-    if(!txt) return PRECIO;
-    var n = numero(txt);
+    var n = txt ? numero(txt) : NaN;
     return (isFinite(n) && n > 0) ? n : NaN;
   }
   function totalVivo(){
     var c = leeCantidad(), pr = leePrecio(), el = document.getElementById("total-vivo");
-    if(isNaN(c) || isNaN(pr)){ el.innerHTML = ""; return; }
+    var listo = !isNaN(c) && !isNaN(pr);
+    document.getElementById("btn-anotar").disabled = isNaN(pr);
+    el.classList.toggle("pide", precioSel === null);
+    if(precioSel === null){ el.textContent = "Escoge el precio de la bolsa"; return; }
+    if(!listo){ el.innerHTML = ""; return; }
     el.innerHTML = esc(bolsas(c)) + ' &times; $' + dinero(pr) + ' = <strong>$' + dinero(c*pr) + '</strong>';
   }
   document.getElementById("cantidad").addEventListener("input", totalVivo);
@@ -764,13 +773,14 @@
   var chips = Array.prototype.slice.call(document.querySelectorAll(".chip"));
   function eligePrecio(valor, enfoca){
     var otro = document.getElementById("precio");
-    chips.forEach(function(c){ c.setAttribute("aria-pressed", String(c.dataset.precio === valor)); });
+    precioSel = valor;
+    chips.forEach(function(c){ c.setAttribute("aria-pressed", String(valor !== null && c.dataset.precio === valor)); });
     if(valor === "otro"){
       otro.hidden = false;
       if(enfoca){ otro.focus(); otro.select(); }
     }else{
       otro.hidden = true;
-      otro.value = valor;
+      otro.value = valor === null ? "" : valor;
     }
     totalVivo();
   }
@@ -839,8 +849,9 @@
     var detalle = document.getElementById("detalle").value.trim();
 
     if(!cliente){ aviso("Falta el nombre de quien compró"); document.getElementById("cliente").focus(); return; }
+    if(precioSel === null){ aviso("Escoge si la bolsa fue de $2 o de $4"); chips[0].focus(); return; }
     if(isNaN(cantidad)){ aviso("Pon cuántas bolsas se llevó, por ejemplo 3"); document.getElementById("cantidad").focus(); return; }
-    if(isNaN(precio)){ aviso("El precio por bolsa no se entiende; déjalo en 4"); document.getElementById("precio").focus(); return; }
+    if(isNaN(precio)){ aviso("Escribe el otro precio, por ejemplo 3.5"); document.getElementById("precio").focus(); return; }
 
     var monto = Math.round(cantidad * precio * 100) / 100;
     ejemplo = [];
@@ -853,7 +864,7 @@
     document.getElementById("cliente").value = "";
     document.getElementById("detalle").value = "";
     document.getElementById("cantidad").value = "1";
-    eligePrecio(String(PRECIO), false);
+    eligePrecio(null, false);
     document.getElementById("fecha").value = hoyISO();
     document.getElementById("cliente").focus();
   });
@@ -935,7 +946,7 @@
 
   /* ---------- arranque ---------- */
   document.getElementById("fecha").value = hoyISO();
-  eligePrecio(String(PRECIO), false);
+  eligePrecio(null, false);
   leerLocal();
   leerConfigLocal();
   armaEjemplo();
