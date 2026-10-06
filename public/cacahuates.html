@@ -98,6 +98,33 @@
     .tile.debe{grid-column:1 / -1}
   }
 
+  /* ---- inversión ---- */
+  .inversion{display:flex;flex-direction:column;gap:13px}
+  .inv-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap}
+  .inv-texto{min-width:0}
+  .inv-titulo{font-family:var(--display);font-size:1.3rem;font-weight:700;line-height:1.25;margin-top:3px}
+  .inv-titulo .cifra{color:var(--ochre)}
+  .inv-titulo .logrado{color:var(--green)}
+  .inv-form{display:flex;flex-direction:column;gap:5px}
+  .inv-campo{display:flex;gap:8px}
+  #inversion{max-width:7.5rem;font-variant-numeric:tabular-nums}
+  .barra{
+    position:relative;display:flex;height:16px;border-radius:999px;
+    background:var(--surface-2);border:1px solid var(--line);overflow:hidden;
+  }
+  .barra[hidden]{display:none}
+  .seg{height:100%;transition:width .25s ease}
+  .seg.cob{background:var(--green)}
+  .seg.pend{background:var(--ochre)}
+  .marca{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);opacity:.5}
+  .marca[hidden]{display:none}
+  .inv-detalle{margin:0;font-size:.88rem;color:var(--ink-soft)}
+  .inv-detalle strong{color:var(--ink);font-variant-numeric:tabular-nums}
+  .punto{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:baseline}
+  .punto.cob{background:var(--green)}
+  .punto.pend{background:var(--ochre)}
+  @media (prefers-reduced-motion: reduce){.seg{transition:none}}
+
   /* ---- formulario ---- */
   .card{
     background:var(--surface);border:1px solid var(--line);border-radius:12px;
@@ -237,6 +264,28 @@
 
   <section class="resumen" id="resumen"></section>
 
+  <section class="card inversion">
+    <div class="inv-head">
+      <div class="inv-texto">
+        <p class="eyebrow">Mi inversión</p>
+        <h2 class="inv-titulo" id="inv-titulo">Pon cuánto invertiste</h2>
+      </div>
+      <form class="inv-form" id="form-inversion" autocomplete="off">
+        <label class="label-chips" for="inversion">Lo que invertí (USD)</label>
+        <div class="inv-campo">
+          <input type="text" id="inversion" name="inversion" inputmode="decimal" placeholder="0">
+          <button type="submit" class="btn-ghost">Guardar</button>
+        </div>
+      </form>
+    </div>
+    <div class="barra" id="barra-inv" role="img" aria-label="Avance de la inversión">
+      <div class="seg cob" id="seg-cob"></div>
+      <div class="seg pend" id="seg-pend"></div>
+      <div class="marca" id="marca-inv" hidden></div>
+    </div>
+    <p class="inv-detalle" id="inv-detalle"></p>
+  </section>
+
   <section class="card">
     <h2>Anotar una venta</h2>
     <form class="anotar" id="form-venta" autocomplete="off">
@@ -313,6 +362,9 @@
   "use strict";
 
   var LS_KEY = "cacahuates.ventas.v1";
+  var LS_CONF = "cacahuates.config.v1";
+  // inversion: lo que gastó comprando; cobradoBorrado: lo ya cobrado de ventas que borró de la lista
+  var config = {inversion:0, cobradoBorrado:0};
   var PRECIO = 4;                 // precio de siempre
   var PRECIOS = [4, 2];           // los dos precios de botón; cualquier otro se escribe a mano
   var ventas = [];        // ventas reales
@@ -360,6 +412,27 @@
   function espejoLocal(){
     try{ localStorage.setItem(LS_KEY, JSON.stringify(ventas)); }catch(e){}
   }
+  function normalizaConfig(c){
+    c = c || {};
+    return {
+      inversion: Number(c.inversion) > 0 ? Number(c.inversion) : 0,
+      cobradoBorrado: Number(c.cobradoBorrado) > 0 ? Number(c.cobradoBorrado) : 0
+    };
+  }
+  function espejoConfig(){
+    try{ localStorage.setItem(LS_CONF, JSON.stringify(config)); }catch(e){}
+  }
+  function leerConfigLocal(){
+    try{ config = normalizaConfig(JSON.parse(localStorage.getItem(LS_CONF) || "{}")); }catch(e){}
+  }
+  function guardarConfig(){
+    espejoConfig();
+    if(!db) return;
+    db.doc("config/negocio").set(config).catch(function(){
+      aviso("No se pudo guardar en la nube; quedó en este navegador.");
+    });
+  }
+
   function leerLocal(){
     try{
       var v = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
@@ -411,6 +484,15 @@
     }catch(e){ db = null; }
     if(!db){ marcaGuardado("Se guarda en este navegador"); return; }
     marcaGuardado("Se guarda en tu cuenta");
+    db.doc("config/negocio").onSnapshot(function(snap){
+      if(snap.exists){
+        config = normalizaConfig(snap.data());
+        espejoConfig();
+        pinta();
+      }else if(config.inversion || config.cobradoBorrado){
+        guardarConfig();
+      }
+    }, function(){});
     db.collection("ventas").onSnapshot(function(snap){
       var deLaNube = [];
       snap.docs.forEach(function(d){
@@ -462,6 +544,8 @@
     var porCobrar = pend.reduce(function(a,v){ return a + v.monto; }, 0);
     var cobrado   = pag.reduce(function(a,v){ return a + v.monto; }, 0);
     var bolsasPend = pend.reduce(function(a,v){ return a + v.cantidad; }, 0);
+    var cobradoTotal = cobrado + (demo ? 0 : config.cobradoBorrado);
+    pintaInversion(cobradoTotal, porCobrar, demo);
 
     // agrupar por cliente
     var mapa = {};
@@ -484,7 +568,9 @@
       '<div class="tile"><p class="eyebrow">Personas que deben</p>' +
         '<div class="mid num">' + grupos.length + '</div></div>' +
       '<div class="tile"><p class="eyebrow">Ya cobrado (USD)</p>' +
-        '<div class="mid num">$' + dinero(cobrado) + '</div></div>';
+        '<div class="mid num">$' + dinero(cobradoTotal) + '</div>' +
+        (!demo && config.cobradoBorrado ? '<p class="sub">incluye $' + dinero(config.cobradoBorrado) + ' de ventas que ya borraste</p>' : '') +
+      '</div>';
 
     document.getElementById("pendientes-nota").innerHTML = demo
       ? 'Ejemplo &mdash; se borra al anotar tu primera venta'
@@ -544,6 +630,57 @@
     return '<span' + (raro ? ' class="precio-raro"' : '') + '>' + esc(bolsas(v.cantidad)) +
       ' &times; $' + dinero(v.precio) + '</span>' +
       (v.detalle ? ' <span style="color:var(--ink-soft)">&middot; ' + esc(v.detalle) + '</span>' : '');
+  }
+
+  function pintaInversion(cobradoTotal, porCobrar, demo){
+    var invEjemplo = demo && !config.inversion;
+    var inv = invEjemplo ? 30 : config.inversion;
+    var vendido = cobradoTotal + porCobrar;
+    var titulo = document.getElementById("inv-titulo");
+    var detalle = document.getElementById("inv-detalle");
+    var barra = document.getElementById("barra-inv");
+    var marca = document.getElementById("marca-inv");
+
+    if(inv <= 0){
+      titulo.textContent = "Pon cuánto invertiste";
+      detalle.innerHTML = "Escribe a la derecha lo que gastaste comprando los cacahuates y aquí te voy diciendo cuánto te falta para recuperarlo y cuánta utilidad llevas.";
+      barra.hidden = true;
+      return;
+    }
+
+    barra.hidden = false;
+    var tope = Math.max(inv, vendido) || 1;
+    document.getElementById("seg-cob").style.width  = (cobradoTotal / tope * 100) + "%";
+    document.getElementById("seg-pend").style.width = (porCobrar / tope * 100) + "%";
+    marca.hidden = vendido <= inv;
+    marca.style.left = (inv / tope * 100) + "%";
+
+    var utilidad = vendido - inv;
+    if(utilidad < 0){
+      titulo.innerHTML = 'Te faltan <span class="cifra">$' + dinero(-utilidad) + '</span> para recuperar tu inversión';
+    }else{
+      titulo.innerHTML = 'Inversión recuperada &middot; llevas <span class="logrado">$' + dinero(utilidad) + '</span> de utilidad';
+    }
+
+    var enMano = cobradoTotal - inv;
+    var extra = "";
+    if(utilidad >= 0 && porCobrar > 0){
+      extra = enMano >= 0
+        ? ' De esa utilidad, <strong>$' + dinero(enMano) + '</strong> ya está en tu bolsa; lo demás te lo deben.'
+        : ' Todavía no la tienes en efectivo: te faltan por cobrar <strong>$' + dinero(-enMano) + '</strong> para completar lo que invertiste.';
+    }
+
+    detalle.innerHTML =
+      'Vendido <strong>$' + dinero(vendido) + '</strong> de <strong>$' + dinero(inv) + '</strong> invertidos &middot; ' +
+      '<span class="punto cob"></span>cobrado <strong>$' + dinero(cobradoTotal) + '</strong> &middot; ' +
+      '<span class="punto pend"></span>te deben <strong>$' + dinero(porCobrar) + '</strong>.' + extra +
+      (invEjemplo ? ' <em>(ejemplo: pon tu inversión de verdad aquí al lado)</em>' : '');
+
+    barra.setAttribute("aria-label",
+      "Vendido " + dinero(vendido) + " de " + dinero(inv) + " dólares invertidos");
+
+    var campo = document.getElementById("inversion");
+    if(document.activeElement !== campo) campo.value = config.inversion ? dinero(config.inversion) : "";
   }
 
   function fila(v){
@@ -641,6 +778,20 @@
     c.addEventListener("click", function(){ eligePrecio(c.dataset.precio, true); });
   });
 
+  /* ---------- inversión ---------- */
+  document.getElementById("form-inversion").addEventListener("submit", function(e){
+    e.preventDefault();
+    var campo = document.getElementById("inversion");
+    var txt = campo.value.trim();
+    var n = txt ? numero(txt) : 0;
+    if(txt && (!isFinite(n) || n < 0)){ aviso("Pon cuánto invertiste, por ejemplo 120"); campo.focus(); return; }
+    config.inversion = Math.round((n || 0) * 100) / 100;
+    guardarConfig();
+    pinta();
+    campo.blur();
+    aviso(config.inversion ? "Inversión guardada: $" + dinero(config.inversion) : "Inversión borrada");
+  });
+
   /* ---------- borrar las ya pagadas ---------- */
   var btnLimpiar = document.getElementById("borrar-pagadas");
   var tLimpiar;
@@ -666,10 +817,12 @@
     if(enEjemplo()){
       ejemplo = ejemplo.filter(function(v){ return !v.pagado; });
     }else{
-      var meses = {};
-      pagadas.forEach(function(v){ meses[mesDe(v.fecha)] = true; });
+      var meses = {}, suma = 0;
+      pagadas.forEach(function(v){ meses[mesDe(v.fecha)] = true; suma += v.monto; });
       ventas = ventas.filter(function(v){ return !v.pagado; });
       Object.keys(meses).forEach(guardarMes);
+      config.cobradoBorrado = Math.round((config.cobradoBorrado + suma) * 100) / 100;
+      guardarConfig();
     }
     resetBorrarPagadas();
     pinta();
@@ -784,6 +937,7 @@
   document.getElementById("fecha").value = hoyISO();
   eligePrecio(String(PRECIO), false);
   leerLocal();
+  leerConfigLocal();
   armaEjemplo();
   pinta();
 })();
