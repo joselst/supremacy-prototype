@@ -192,6 +192,14 @@
   }
   details.pagadas summary::marker{color:var(--ochre)}
   details.pagadas summary .eyebrow{display:inline;margin-left:6px}
+  .barra-pagadas{display:flex;justify-content:flex-end;margin-top:10px}
+  .barra-pagadas[hidden]{display:none}
+  .btn-limpiar{
+    background:transparent;color:var(--red);padding:8px 13px;
+    border-color:color-mix(in srgb,var(--red) 35%,var(--line));
+  }
+  .btn-limpiar:hover{background:color-mix(in srgb,var(--red) 10%,transparent)}
+  .btn-limpiar[data-confirm="1"]{border-color:var(--red);border-width:2px;background:color-mix(in srgb,var(--red) 14%,transparent)}
   .lista-pagadas{margin-top:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
   .lista-pagadas .venta .monto{color:var(--ink-soft)}
   .check{color:var(--green);font-weight:700}
@@ -277,6 +285,9 @@
   <section>
     <details class="pagadas" id="det-pagadas">
       <summary>Ya pagadas <span class="eyebrow" id="pagadas-cuenta"></span></summary>
+      <div class="barra-pagadas" id="barra-pagadas" hidden>
+        <button type="button" class="btn-limpiar" id="borrar-pagadas">Borrar las ya pagadas</button>
+      </div>
       <div class="lista-pagadas" id="lista-pagadas"></div>
     </details>
   </section>
@@ -501,6 +512,8 @@
     }
 
     document.getElementById("pagadas-cuenta").textContent = pag.length ? "(" + pag.length + ")" : "(0)";
+    document.getElementById("barra-pagadas").hidden = pag.length === 0;
+    resetBorrarPagadas();
     var lp = document.getElementById("lista-pagadas");
     pag.sort(function(a,b){ return (a.pagadoEn||a.fecha) < (b.pagadoEn||b.fecha) ? 1 : -1; });
     lp.innerHTML = pag.length
@@ -626,6 +639,41 @@
   }
   chips.forEach(function(c){
     c.addEventListener("click", function(){ eligePrecio(c.dataset.precio, true); });
+  });
+
+  /* ---------- borrar las ya pagadas ---------- */
+  var btnLimpiar = document.getElementById("borrar-pagadas");
+  var tLimpiar;
+  function resetBorrarPagadas(){
+    clearTimeout(tLimpiar);
+    btnLimpiar.dataset.confirm = "";
+    btnLimpiar.textContent = "Borrar las ya pagadas";
+  }
+  btnLimpiar.addEventListener("click", function(){
+    var pagadas = lista().filter(function(v){ return v.pagado; });
+    if(!pagadas.length){ resetBorrarPagadas(); return; }
+
+    if(btnLimpiar.dataset.confirm !== "1"){
+      btnLimpiar.dataset.confirm = "1";
+      btnLimpiar.textContent = "Sí, borrar " + pagadas.length +
+        (pagadas.length === 1 ? " venta pagada" : " ventas pagadas");
+      clearTimeout(tLimpiar);
+      tLimpiar = setTimeout(resetBorrarPagadas, 5000);
+      return;
+    }
+
+    var cuantas = pagadas.length;
+    if(enEjemplo()){
+      ejemplo = ejemplo.filter(function(v){ return !v.pagado; });
+    }else{
+      var meses = {};
+      pagadas.forEach(function(v){ meses[mesDe(v.fecha)] = true; });
+      ventas = ventas.filter(function(v){ return !v.pagado; });
+      Object.keys(meses).forEach(guardarMes);
+    }
+    resetBorrarPagadas();
+    pinta();
+    aviso("Se borraron " + cuantas + (cuantas === 1 ? " venta pagada" : " ventas pagadas"));
   });
 
   /* ---------- acciones ---------- */
