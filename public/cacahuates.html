@@ -133,12 +133,29 @@
   form.anotar{display:grid;grid-template-columns:9.5rem minmax(0,1fr);gap:12px;align-items:end;margin-top:14px}
   form.anotar .campo.llevo,form.anotar .campo.nota,form.anotar .accion{grid-column:1 / -1}
   form.anotar .accion{display:flex;gap:12px;align-items:center;justify-content:flex-end}
-  .precios{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end}
-  .mini{display:flex;flex-direction:column;gap:5px}
-  .mini input{width:5rem;text-align:center;font-variant-numeric:tabular-nums}
-  .mini-par{display:flex;align-items:center;gap:7px}
-  .mini-par input{width:4.6rem}
-  .mini-par .por{color:var(--ink-soft);font-size:.92rem;white-space:nowrap}
+  .precios{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+  .contador{display:flex;flex-direction:column;gap:7px;align-items:center}
+  .suma{
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    min-width:7.2rem;padding:13px 18px;
+    background:var(--ground);border:1.5px solid var(--line);color:var(--ink);
+    user-select:none;-webkit-user-select:none;touch-action:manipulation;
+  }
+  .suma .precio{font-family:var(--display);font-weight:700;font-size:1.4rem;line-height:1.1}
+  .suma .cuenta{font-size:.78rem;opacity:.75;font-variant-numeric:tabular-nums}
+  .suma:hover{border-color:var(--teal)}
+  .suma[data-activo="1"]{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
+  .suma[data-activo="1"] .cuenta{opacity:.9;font-weight:600}
+  .bajo{display:flex;align-items:center;gap:7px}
+  .resta{
+    width:34px;height:34px;border-radius:50%;line-height:1;font-size:1.15rem;
+    background:var(--surface);border:1px solid var(--line);color:var(--ink);
+  }
+  .resta:hover:not([disabled]){border-color:var(--red);color:var(--red)}
+  .resta[disabled]{opacity:.3;cursor:default}
+  .bajo .por{color:var(--ink-soft);font-size:.92rem}
+  .bajo input{width:4.6rem;text-align:center;font-variant-numeric:tabular-nums;padding:7px 8px}
+  .pista-toque{margin:8px 0 0;font-size:.8rem;color:var(--ink-soft)}
   .total-vivo{font-family:var(--display);font-weight:700;font-size:1.1rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
   .total-vivo strong{color:var(--ink)}
   .campo{display:flex;flex-direction:column;gap:5px;min-width:0}
@@ -298,21 +315,34 @@
         <datalist id="clientes"></datalist>
       </div>
       <div class="campo llevo">
-        <span class="label-chips" id="lbl-llevo">Qué se llevó (puedes mezclar precios)</span>
+        <span class="label-chips" id="lbl-llevo">Qué se llevó &mdash; toca una vez por bolsa</span>
         <div class="precios" role="group" aria-labelledby="lbl-llevo">
-          <div class="mini">
-            <label for="cant-2">Bolsas de $2</label>
-            <input type="text" id="cant-2" name="cant-2" inputmode="decimal" placeholder="0">
+          <div class="contador">
+            <button type="button" class="suma" data-suma="2">
+              <span class="precio">$2</span>
+              <span class="cuenta" id="n-2">ninguna</span>
+            </button>
+            <div class="bajo">
+              <button type="button" class="resta" data-resta="2" aria-label="Quitar una bolsa de $2" disabled>&minus;</button>
+            </div>
           </div>
-          <div class="mini">
-            <label for="cant-4">Bolsas de $4</label>
-            <input type="text" id="cant-4" name="cant-4" inputmode="decimal" placeholder="0">
+          <div class="contador">
+            <button type="button" class="suma" data-suma="4">
+              <span class="precio">$4</span>
+              <span class="cuenta" id="n-4">ninguna</span>
+            </button>
+            <div class="bajo">
+              <button type="button" class="resta" data-resta="4" aria-label="Quitar una bolsa de $4" disabled>&minus;</button>
+            </div>
           </div>
-          <div class="mini">
-            <label for="cant-otro">Bolsas de otro precio</label>
-            <div class="mini-par">
-              <input type="text" id="cant-otro" name="cant-otro" inputmode="decimal" placeholder="0">
-              <span class="por">&times; $</span>
+          <div class="contador">
+            <button type="button" class="suma" data-suma="otro">
+              <span class="precio">Otro</span>
+              <span class="cuenta" id="n-otro">ninguna</span>
+            </button>
+            <div class="bajo">
+              <button type="button" class="resta" data-resta="otro" aria-label="Quitar una bolsa de otro precio" disabled>&minus;</button>
+              <span class="por">$</span>
               <input type="text" id="precio-otro" name="precio-otro" inputmode="decimal" placeholder="3.50" aria-label="Precio de esas bolsas">
             </div>
           </div>
@@ -323,6 +353,7 @@
         <input type="text" id="detalle" name="detalle" placeholder="dos sin sal" maxlength="80">
       </div>
       <div class="accion">
+        <button type="button" class="btn-mini" id="btn-limpiar-venta" hidden>Empezar de nuevo</button>
         <span class="total-vivo" id="total-vivo"></span>
         <button type="submit" class="btn" id="btn-anotar">Anotar venta</button>
       </div>
@@ -775,55 +806,94 @@
     document.getElementById("dlg-copiar").close();
   });
 
-  /* ---------- lo que se lleva, renglón por renglón ---------- */
-  var CAMPOS_VENTA = ["cant-2", "cant-4", "cant-otro", "precio-otro"];
+  /* ---------- lo que se lleva: un toque, una bolsa ---------- */
+  var cuentas = {"2":0, "4":0, "otro":0};
 
-  function cuantas(id){
-    var txt = document.getElementById(id).value.trim();
-    if(!txt) return 0;
-    var n = numero(txt);
-    return (isFinite(n) && n > 0) ? n : NaN;
+  function pintaContadores(){
+    Object.keys(cuentas).forEach(function(k){
+      var n = cuentas[k];
+      document.getElementById("n-" + k).textContent =
+        n === 0 ? "ninguna" : (n === 1 ? "1 bolsa" : n + " bolsas");
+      document.querySelector('.suma[data-suma="' + k + '"]').setAttribute("data-activo", n > 0 ? "1" : "0");
+      document.querySelector('.resta[data-resta="' + k + '"]').disabled = n === 0;
+    });
+    document.getElementById("btn-limpiar-venta").hidden =
+      !(cuentas["2"] || cuentas["4"] || cuentas.otro);
+  }
+
+  function suma(k, delta){
+    cuentas[k] = Math.max(0, cuentas[k] + delta);
+    pintaContadores();
+    totalVivo();
+    if(k === "otro" && cuentas.otro > 0){
+      var pr = document.getElementById("precio-otro");
+      if(!pr.value.trim() && delta > 0) pr.focus();
+    }
   }
 
   function leeLineas(){
-    var r = {lineas:[], total:0, bolsas:0, faltaPrecio:false, malo:false};
-    [["cant-2", 2], ["cant-4", 4]].forEach(function(par){
-      var n = cuantas(par[0]);
-      if(isNaN(n)) r.malo = true;
-      else if(n > 0) r.lineas.push({cantidad:r2(n), precio:par[1]});
+    var r = {lineas:[], total:0, bolsas:0, faltaPrecio:false};
+    [["2", 2], ["4", 4]].forEach(function(par){
+      if(cuentas[par[0]] > 0) r.lineas.push({cantidad:cuentas[par[0]], precio:par[1]});
     });
-    var nx = cuantas("cant-otro");
-    var px = cuantas("precio-otro");
-    if(isNaN(nx)) r.malo = true;
-    else if(nx > 0){
-      if(isNaN(px) || px <= 0) r.faltaPrecio = true;
-      else r.lineas.push({cantidad:r2(nx), precio:r2(px)});
+    if(cuentas.otro > 0){
+      var txt = document.getElementById("precio-otro").value.trim();
+      var px = txt ? numero(txt) : NaN;
+      if(isFinite(px) && px > 0) r.lineas.push({cantidad:cuentas.otro, precio:r2(px)});
+      else r.faltaPrecio = true;
     }
     r.lineas.forEach(function(l){ r.total += l.cantidad * l.precio; r.bolsas += l.cantidad; });
     r.total = r2(r.total);
-    r.bolsas = r2(r.bolsas);
     return r;
   }
 
   function totalVivo(){
     var r = leeLineas(), el = document.getElementById("total-vivo");
-    var listo = r.lineas.length > 0 && !r.faltaPrecio && !r.malo;
+    var listo = r.lineas.length > 0 && !r.faltaPrecio;
     document.getElementById("btn-anotar").disabled = !listo;
     el.classList.toggle("pide", !listo);
-    if(r.faltaPrecio){ el.textContent = "Pon el precio de esas otras bolsas"; return; }
-    if(!r.lineas.length){ el.textContent = "Pon cuántas bolsas se llevó"; return; }
+    if(r.faltaPrecio){ el.textContent = "Pon a cómo fueron esas bolsas"; return; }
+    if(!r.lineas.length){ el.textContent = "Toca las bolsas que se llevó"; return; }
     el.innerHTML = r.lineas.map(function(l){ return trozo(l, false); }).join(" + ") +
       ' = <strong>$' + dinero(r.total) + '</strong>';
   }
 
   function limpiaVenta(){
-    CAMPOS_VENTA.forEach(function(id){ document.getElementById(id).value = ""; });
+    cuentas = {"2":0, "4":0, "otro":0};
+    document.getElementById("precio-otro").value = "";
+    pintaContadores();
     totalVivo();
   }
 
-  CAMPOS_VENTA.forEach(function(id){
-    document.getElementById(id).addEventListener("input", totalVivo);
+  // toque = una bolsa; si lo dejas apretado, sigue sumando
+  var holdEspera = null, holdRepite = null, huboRepeticion = false;
+  function paraHold(){
+    clearTimeout(holdEspera); clearInterval(holdRepite);
+    holdEspera = holdRepite = null;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".suma"), function(b){
+    var k = b.dataset.suma;
+    b.addEventListener("pointerdown", function(){
+      paraHold();
+      huboRepeticion = false;
+      holdEspera = setTimeout(function(){
+        huboRepeticion = true;
+        holdRepite = setInterval(function(){ suma(k, 1); }, 160);
+      }, 450);
+    });
+    ["pointerup","pointerleave","pointercancel"].forEach(function(ev){
+      b.addEventListener(ev, paraHold);
+    });
+    b.addEventListener("click", function(){
+      if(huboRepeticion){ huboRepeticion = false; return; }
+      suma(k, 1);
+    });
   });
+  Array.prototype.forEach.call(document.querySelectorAll(".resta"), function(b){
+    b.addEventListener("click", function(){ suma(b.dataset.resta, -1); });
+  });
+  document.getElementById("precio-otro").addEventListener("input", totalVivo);
+  document.getElementById("btn-limpiar-venta").addEventListener("click", limpiaVenta);
 
   /* ---------- inversión ---------- */
   document.getElementById("form-inversion").addEventListener("submit", function(e){
@@ -885,8 +955,8 @@
     var r = leeLineas();
 
     if(!cliente){ aviso("Falta el nombre de quien compró"); document.getElementById("cliente").focus(); return; }
-    if(r.faltaPrecio){ aviso("Escribe el precio de esas otras bolsas"); document.getElementById("precio-otro").focus(); return; }
-    if(!r.lineas.length){ aviso("Pon cuántas bolsas se llevó, de $2 o de $4"); document.getElementById("cant-2").focus(); return; }
+    if(r.faltaPrecio){ aviso("Escribe a cómo fueron esas otras bolsas"); document.getElementById("precio-otro").focus(); return; }
+    if(!r.lineas.length){ aviso("Toca las bolsas que se llevó, de $2 o de $4"); document.querySelector('.suma[data-suma="2"]').focus(); return; }
 
     ejemplo = [];
     ventas.push(normaliza({id:idNuevo(), fecha:fecha, cliente:cliente, detalle:detalle,
