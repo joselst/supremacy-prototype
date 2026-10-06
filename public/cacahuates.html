@@ -130,22 +130,19 @@
     background:var(--surface);border:1px solid var(--line);border-radius:12px;
     padding:18px;box-shadow:var(--shadow);
   }
-  form.anotar{display:grid;grid-template-columns:9.5rem minmax(0,1fr) 8.6rem;gap:12px;align-items:end;margin-top:14px}
-  form.anotar .campo.precio-campo{grid-column:1 / -1}
-  form.anotar .campo.nota{grid-column:1 / 3}
-  form.anotar .accion{grid-column:1 / -1;display:flex;gap:12px;align-items:center;justify-content:flex-end}
-  .chips{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
-  .chip{
-    background:var(--ground);border:1px solid var(--line);color:var(--ink);
-    padding:9px 15px;font-variant-numeric:tabular-nums;
-  }
-  .chip:hover{border-color:var(--teal)}
-  .chip[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
-  .chips input{max-width:7.5rem}
+  form.anotar{display:grid;grid-template-columns:9.5rem minmax(0,1fr);gap:12px;align-items:end;margin-top:14px}
+  form.anotar .campo.llevo,form.anotar .campo.nota,form.anotar .accion{grid-column:1 / -1}
+  form.anotar .accion{display:flex;gap:12px;align-items:center;justify-content:flex-end}
+  .precios{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end}
+  .mini{display:flex;flex-direction:column;gap:5px}
+  .mini input{width:5rem;text-align:center;font-variant-numeric:tabular-nums}
+  .mini-par{display:flex;align-items:center;gap:7px}
+  .mini-par input{width:4.6rem}
+  .mini-par .por{color:var(--ink-soft);font-size:.92rem;white-space:nowrap}
   .total-vivo{font-family:var(--display);font-weight:700;font-size:1.1rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
   .total-vivo strong{color:var(--ink)}
   .campo{display:flex;flex-direction:column;gap:5px;min-width:0}
-  .campo label,.label-chips{font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;font-weight:600;color:var(--ink-soft)}
+  .campo label,.label-chips,.mini label{font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;font-weight:600;color:var(--ink-soft)}
   input{
     font-family:var(--body);font-size:1rem;color:var(--ink);
     background:var(--ground);border:1px solid var(--line);border-radius:8px;
@@ -154,9 +151,9 @@
   #cantidad,#precio{font-variant-numeric:tabular-nums}
   input:focus-visible,button:focus-visible,summary:focus-visible{outline:2.5px solid var(--ochre);outline-offset:2px}
   @media (max-width:720px){
-    form.anotar{grid-template-columns:1fr 1fr}
-    form.anotar .campo.cliente,form.anotar .campo.nota,form.anotar .accion{grid-column:1 / -1}
+    form.anotar{grid-template-columns:1fr}
     form.anotar .accion{justify-content:space-between}
+    .precios{gap:14px}
   }
 
   button{font-family:var(--body);font-size:.94rem;font-weight:600;cursor:pointer;border-radius:8px;border:1px solid transparent}
@@ -261,7 +258,7 @@
   <header>
     <p class="eyebrow">Libreta de ventas</p>
     <h1>Cuentas de cacahuates</h1>
-    <p class="lede">Hay bolsas de <strong>$2</strong> y de <strong>$4</strong>: escoge el precio, anota quién compró y cuántas se llevó. Cuando te paguen, dale a <strong>Ya pagó</strong>; si alguien se tarda, copia el recordatorio y pégalo en WhatsApp.</p>
+    <p class="lede">Hay bolsas de <strong>$2</strong> y de <strong>$4</strong>: anota quién compró y cuántas de cada una se llevó, aunque sean mezcladas. Cuando te paguen, dale a <strong>Ya pagó</strong>; si alguien se tarda, copia el recordatorio y pégalo en WhatsApp.</p>
   </header>
 
   <section class="resumen" id="resumen"></section>
@@ -300,17 +297,25 @@
         <input type="text" id="cliente" name="cliente" placeholder="Doña Mari" list="clientes" required maxlength="60">
         <datalist id="clientes"></datalist>
       </div>
-      <div class="campo">
-        <label for="cantidad">Cuántas bolsas</label>
-        <input type="text" id="cantidad" name="cantidad" inputmode="decimal" value="1" required>
-      </div>
-      <div class="campo precio-campo">
-        <span class="label-chips" id="lbl-precio">Precio por bolsa (USD)</span>
-        <div class="chips" role="group" aria-labelledby="lbl-precio">
-          <button type="button" class="chip" data-precio="2" aria-pressed="false">$2</button>
-          <button type="button" class="chip" data-precio="4" aria-pressed="false">$4</button>
-          <button type="button" class="chip" data-precio="otro" aria-pressed="false">Otro precio</button>
-          <input type="text" id="precio" name="precio" inputmode="decimal" value="" hidden aria-label="Otro precio por bolsa">
+      <div class="campo llevo">
+        <span class="label-chips" id="lbl-llevo">Qué se llevó (puedes mezclar precios)</span>
+        <div class="precios" role="group" aria-labelledby="lbl-llevo">
+          <div class="mini">
+            <label for="cant-2">Bolsas de $2</label>
+            <input type="text" id="cant-2" name="cant-2" inputmode="decimal" placeholder="0">
+          </div>
+          <div class="mini">
+            <label for="cant-4">Bolsas de $4</label>
+            <input type="text" id="cant-4" name="cant-4" inputmode="decimal" placeholder="0">
+          </div>
+          <div class="mini">
+            <label for="cant-otro">Bolsas de otro precio</label>
+            <div class="mini-par">
+              <input type="text" id="cant-otro" name="cant-otro" inputmode="decimal" placeholder="0">
+              <span class="por">&times; $</span>
+              <input type="text" id="precio-otro" name="precio-otro" inputmode="decimal" placeholder="3.50" aria-label="Precio de esas bolsas">
+            </div>
+          </div>
         </div>
       </div>
       <div class="campo nota">
@@ -441,26 +446,43 @@
       if(Array.isArray(v)) ventas = v.map(normaliza).filter(Boolean);
     }catch(e){}
   }
+  function r2(n){ return Math.round(n*100)/100; }
+
   function normaliza(v){
     if(!v || typeof v !== "object") return null;
-    var cantidad = Number(v.cantidad) > 0 ? Number(v.cantidad) : 0;
-    var precio   = Number(v.precio)   > 0 ? Number(v.precio)   : 0;
-    var monto    = Number(v.monto)    > 0 ? Number(v.monto)    : 0;
-    // ventas viejas o incompletas: completa lo que falte con el precio de $4
-    if(cantidad && !precio && monto) precio = monto / cantidad;
-    if(precio && !cantidad && monto) cantidad = monto / precio;
-    if(!cantidad && !precio){ precio = PRECIO; cantidad = monto ? monto / PRECIO : 1; }
-    if(!precio) precio = PRECIO;
-    if(!cantidad) cantidad = 1;
-    if(!monto) monto = cantidad * precio;
+
+    var lineas = [];
+    if(Array.isArray(v.lineas)){
+      v.lineas.forEach(function(l){
+        var c = Number(l && l.cantidad), pr = Number(l && l.precio);
+        if(isFinite(c) && c > 0 && isFinite(pr) && pr > 0) lineas.push({cantidad:r2(c), precio:r2(pr)});
+      });
+    }
+    if(!lineas.length){
+      // ventas de antes (un solo precio): completa lo que falte
+      var cantidad = Number(v.cantidad) > 0 ? Number(v.cantidad) : 0;
+      var precio   = Number(v.precio)   > 0 ? Number(v.precio)   : 0;
+      var monto    = Number(v.monto)    > 0 ? Number(v.monto)    : 0;
+      if(cantidad && !precio && monto) precio = monto / cantidad;
+      if(precio && !cantidad && monto) cantidad = monto / precio;
+      if(!cantidad && !precio){ precio = PRECIO; cantidad = monto ? monto / PRECIO : 1; }
+      if(!precio) precio = PRECIO;
+      if(!cantidad) cantidad = 1;
+      lineas = [{cantidad:r2(cantidad), precio:r2(precio)}];
+    }
+
+    var bolsasTotal = 0, total = 0;
+    lineas.forEach(function(l){ bolsasTotal += l.cantidad; total += l.cantidad * l.precio; });
+
     return {
       id: String(v.id || idNuevo()),
       fecha: String(v.fecha || hoyISO()).slice(0,10),
       cliente: String(v.cliente || "").slice(0,60),
       detalle: String(v.detalle || "").slice(0,80),
-      cantidad: Math.round(cantidad*100)/100,
-      precio: Math.round(precio*100)/100,
-      monto: Math.round(monto*100)/100,
+      lineas: lineas,
+      cantidad: r2(bolsasTotal),
+      precio: lineas.length === 1 ? lineas[0].precio : null,
+      monto: r2(total),
       pagado: !!v.pagado,
       pagadoEn: v.pagadoEn ? String(v.pagadoEn).slice(0,10) : ""
     };
@@ -522,11 +544,11 @@
       return t.getFullYear()+"-"+m+"-"+dd;
     }
     ejemplo = [
-      {id:"ej1", fecha:hace(0), cliente:"Doña Mari", detalle:"", cantidad:3, precio:4, monto:12, pagado:false, pagadoEn:"", ej:true},
-      {id:"ej2", fecha:hace(5), cliente:"Doña Mari", detalle:"dos sin sal", cantidad:2, precio:4, monto:8, pagado:false, pagadoEn:"", ej:true},
-      {id:"ej3", fecha:hace(2), cliente:"Beto del taller", detalle:"", cantidad:5, precio:4, monto:20, pagado:false, pagadoEn:"", ej:true},
-      {id:"ej4", fecha:hace(3), cliente:"Ximena", detalle:"se llevó harto", cantidad:10, precio:3.5, monto:35, pagado:true, pagadoEn:hace(1), ej:true}
-    ];
+      {id:"ej1", fecha:hace(0), cliente:"Doña Mari", detalle:"", lineas:[{cantidad:1, precio:4},{cantidad:1, precio:2}], pagado:false},
+      {id:"ej2", fecha:hace(5), cliente:"Doña Mari", detalle:"dos sin sal", lineas:[{cantidad:2, precio:4}], pagado:false},
+      {id:"ej3", fecha:hace(2), cliente:"Beto del taller", detalle:"", lineas:[{cantidad:5, precio:4}], pagado:false},
+      {id:"ej4", fecha:hace(3), cliente:"Ximena", detalle:"se llevó harto", lineas:[{cantidad:10, precio:3.5}], pagado:true, pagadoEn:hace(1)}
+    ].map(normaliza);
   }
   function enEjemplo(){ return ventas.length === 0 && ejemplo.length > 0; }
   function lista(){ return enEjemplo() ? ejemplo : ventas; }
@@ -628,10 +650,18 @@
     return PRECIOS.some(function(x){ return Math.abs(x - n) < 0.001; });
   }
 
+  function trozo(l, conPalabra){
+    var raro = !precioDeLista(l.precio);
+    var cuanto = conPalabra ? bolsas(l.cantidad) : cant(l.cantidad);
+    return '<span' + (raro ? ' class="precio-raro"' : '') + '>' +
+      esc(cuanto) + ' &times; $' + dinero(l.precio) + '</span>';
+  }
+
   function loQueSeLlevo(v){
-    var raro = !precioDeLista(v.precio);
-    return '<span' + (raro ? ' class="precio-raro"' : '') + '>' + esc(bolsas(v.cantidad)) +
-      ' &times; $' + dinero(v.precio) + '</span>' +
+    var cuerpo = v.lineas.length === 1
+      ? trozo(v.lineas[0], true)
+      : esc(bolsas(v.cantidad)) + ': ' + v.lineas.map(function(l){ return trozo(l, false); }).join(" + ");
+    return cuerpo +
       (v.detalle ? ' <span style="color:var(--ink-soft)">&middot; ' + esc(v.detalle) + '</span>' : '');
   }
 
@@ -745,47 +775,54 @@
     document.getElementById("dlg-copiar").close();
   });
 
-  /* ---------- total en vivo ---------- */
-  function leeCantidad(){
-    var n = numero(document.getElementById("cantidad").value);
-    return (isFinite(n) && n > 0) ? n : NaN;
-  }
-  var precioSel = null;    // null = todavía no escoge precio
-  function leePrecio(){
-    if(precioSel === null) return NaN;
-    if(precioSel !== "otro") return Number(precioSel);
-    var txt = document.getElementById("precio").value.trim();
-    var n = txt ? numero(txt) : NaN;
-    return (isFinite(n) && n > 0) ? n : NaN;
-  }
-  function totalVivo(){
-    var c = leeCantidad(), pr = leePrecio(), el = document.getElementById("total-vivo");
-    var listo = !isNaN(c) && !isNaN(pr);
-    document.getElementById("btn-anotar").disabled = isNaN(pr);
-    el.classList.toggle("pide", precioSel === null);
-    if(precioSel === null){ el.textContent = "Escoge el precio de la bolsa"; return; }
-    if(!listo){ el.innerHTML = ""; return; }
-    el.innerHTML = esc(bolsas(c)) + ' &times; $' + dinero(pr) + ' = <strong>$' + dinero(c*pr) + '</strong>';
-  }
-  document.getElementById("cantidad").addEventListener("input", totalVivo);
-  document.getElementById("precio").addEventListener("input", totalVivo);
+  /* ---------- lo que se lleva, renglón por renglón ---------- */
+  var CAMPOS_VENTA = ["cant-2", "cant-4", "cant-otro", "precio-otro"];
 
-  var chips = Array.prototype.slice.call(document.querySelectorAll(".chip"));
-  function eligePrecio(valor, enfoca){
-    var otro = document.getElementById("precio");
-    precioSel = valor;
-    chips.forEach(function(c){ c.setAttribute("aria-pressed", String(valor !== null && c.dataset.precio === valor)); });
-    if(valor === "otro"){
-      otro.hidden = false;
-      if(enfoca){ otro.focus(); otro.select(); }
-    }else{
-      otro.hidden = true;
-      otro.value = valor === null ? "" : valor;
+  function cuantas(id){
+    var txt = document.getElementById(id).value.trim();
+    if(!txt) return 0;
+    var n = numero(txt);
+    return (isFinite(n) && n > 0) ? n : NaN;
+  }
+
+  function leeLineas(){
+    var r = {lineas:[], total:0, bolsas:0, faltaPrecio:false, malo:false};
+    [["cant-2", 2], ["cant-4", 4]].forEach(function(par){
+      var n = cuantas(par[0]);
+      if(isNaN(n)) r.malo = true;
+      else if(n > 0) r.lineas.push({cantidad:r2(n), precio:par[1]});
+    });
+    var nx = cuantas("cant-otro");
+    var px = cuantas("precio-otro");
+    if(isNaN(nx)) r.malo = true;
+    else if(nx > 0){
+      if(isNaN(px) || px <= 0) r.faltaPrecio = true;
+      else r.lineas.push({cantidad:r2(nx), precio:r2(px)});
     }
+    r.lineas.forEach(function(l){ r.total += l.cantidad * l.precio; r.bolsas += l.cantidad; });
+    r.total = r2(r.total);
+    r.bolsas = r2(r.bolsas);
+    return r;
+  }
+
+  function totalVivo(){
+    var r = leeLineas(), el = document.getElementById("total-vivo");
+    var listo = r.lineas.length > 0 && !r.faltaPrecio && !r.malo;
+    document.getElementById("btn-anotar").disabled = !listo;
+    el.classList.toggle("pide", !listo);
+    if(r.faltaPrecio){ el.textContent = "Pon el precio de esas otras bolsas"; return; }
+    if(!r.lineas.length){ el.textContent = "Pon cuántas bolsas se llevó"; return; }
+    el.innerHTML = r.lineas.map(function(l){ return trozo(l, false); }).join(" + ") +
+      ' = <strong>$' + dinero(r.total) + '</strong>';
+  }
+
+  function limpiaVenta(){
+    CAMPOS_VENTA.forEach(function(id){ document.getElementById(id).value = ""; });
     totalVivo();
   }
-  chips.forEach(function(c){
-    c.addEventListener("click", function(){ eligePrecio(c.dataset.precio, true); });
+
+  CAMPOS_VENTA.forEach(function(id){
+    document.getElementById(id).addEventListener("input", totalVivo);
   });
 
   /* ---------- inversión ---------- */
@@ -843,28 +880,24 @@
   document.getElementById("form-venta").addEventListener("submit", function(e){
     e.preventDefault();
     var cliente = document.getElementById("cliente").value.trim();
-    var cantidad = leeCantidad();
-    var precio = leePrecio();
     var fecha = document.getElementById("fecha").value || hoyISO();
     var detalle = document.getElementById("detalle").value.trim();
+    var r = leeLineas();
 
     if(!cliente){ aviso("Falta el nombre de quien compró"); document.getElementById("cliente").focus(); return; }
-    if(precioSel === null){ aviso("Escoge si la bolsa fue de $2 o de $4"); chips[0].focus(); return; }
-    if(isNaN(cantidad)){ aviso("Pon cuántas bolsas se llevó, por ejemplo 3"); document.getElementById("cantidad").focus(); return; }
-    if(isNaN(precio)){ aviso("Escribe el otro precio, por ejemplo 3.5"); document.getElementById("precio").focus(); return; }
+    if(r.faltaPrecio){ aviso("Escribe el precio de esas otras bolsas"); document.getElementById("precio-otro").focus(); return; }
+    if(!r.lineas.length){ aviso("Pon cuántas bolsas se llevó, de $2 o de $4"); document.getElementById("cant-2").focus(); return; }
 
-    var monto = Math.round(cantidad * precio * 100) / 100;
     ejemplo = [];
-    ventas.push({id:idNuevo(), fecha:fecha, cliente:cliente, detalle:detalle,
-                 cantidad:cantidad, precio:precio, monto:monto, pagado:false, pagadoEn:""});
+    ventas.push(normaliza({id:idNuevo(), fecha:fecha, cliente:cliente, detalle:detalle,
+                           lineas:r.lineas, pagado:false, pagadoEn:""}));
     guardarMes(mesDe(fecha));
     pinta();
-    aviso("Anotado: " + cliente + ", " + bolsas(cantidad) + " = $" + dinero(monto));
+    aviso("Anotado: " + cliente + ", " + bolsas(r.bolsas) + " = $" + dinero(r.total));
 
     document.getElementById("cliente").value = "";
     document.getElementById("detalle").value = "";
-    document.getElementById("cantidad").value = "1";
-    eligePrecio(null, false);
+    limpiaVenta();
     document.getElementById("fecha").value = hoyISO();
     document.getElementById("cliente").focus();
   });
@@ -946,7 +979,7 @@
 
   /* ---------- arranque ---------- */
   document.getElementById("fecha").value = hoyISO();
-  eligePrecio(null, false);
+  limpiaVenta();
   leerLocal();
   leerConfigLocal();
   armaEjemplo();
